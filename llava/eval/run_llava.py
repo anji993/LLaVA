@@ -1,3 +1,4 @@
+import time
 import argparse
 import torch
 
@@ -52,8 +53,24 @@ def eval_model(args):
     disable_torch_init()
 
     model_name = get_model_name_from_path(args.model_path)
+
+    max_memory = {}
+    if args.max_memory_gpu0 > 0:
+        max_memory[0] = '{}GiB'.format(args.max_memory_gpu0)
+    if args.max_memory_gpu1 > 0:
+        max_memory[1] = '{}GiB'.format(args.max_memory_gpu1)
+    if args.max_memory_gpu2 > 0:
+        max_memory[2] = '{}GiB'.format(args.max_memory_gpu2)
+    if args.max_memory_gpu3 > 0:
+        max_memory[3] = '{}GiB'.format(args.max_memory_gpu3)
+    if args.max_memory_cpu > 0:
+        max_memory['cpu'] = '{}GiB'.format(args.max_memory_cpu)
+
+    if len(max_memory) == 0:
+         max_memory = None
+
     tokenizer, model, image_processor, context_len = load_pretrained_model(
-        args.model_path, args.model_base, model_name
+        args.model_path, args.model_base, model_name, use_flash_attn=True, max_memory=max_memory
     )
 
     qs = args.query
@@ -111,6 +128,8 @@ def eval_model(args):
         .cuda()
     )
 
+    start_time = time.time()
+
     with torch.inference_mode():
         output_ids = model.generate(
             input_ids,
@@ -127,6 +146,8 @@ def eval_model(args):
     outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
     print(outputs)
 
+    print(time.time() - start_time)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -138,8 +159,14 @@ if __name__ == "__main__":
     parser.add_argument("--sep", type=str, default=",")
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top_p", type=float, default=None)
-    parser.add_argument("--num_beams", type=int, default=1)
+    parser.add_argument("--num_beams", type=int, default=2)
     parser.add_argument("--max_new_tokens", type=int, default=512)
+    parser.add_argument("--max_memory_gpu0", type=int, default=0)
+    parser.add_argument("--max_memory_gpu1", type=int, default=0)
+    parser.add_argument("--max_memory_gpu2", type=int, default=0)
+    parser.add_argument("--max_memory_gpu3", type=int, default=0)
+    parser.add_argument("--max_memory_cpu", type=int, default=0)
+
     args = parser.parse_args()
 
     eval_model(args)
