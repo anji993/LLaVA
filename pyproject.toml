@@ -41,10 +41,15 @@ standalone = [
 ]
 
 
-
-[project.optional-dependencies]
-train = ["deepspeed==0.12.6", "ninja", "wandb"]
-build = ["build", "twine"]
+train = [
+    "deepspeed==0.12.6",
+    "ninja",
+    "wandb"
+]
+build = [
+    "build",
+    "twine"
+]
 
 [project.urls]
 "Homepage" = "https://llava-vl.github.io"
